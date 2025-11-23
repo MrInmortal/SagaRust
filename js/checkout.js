@@ -42,10 +42,16 @@ async function enviarDatosPago(formData) {
     try {
         console.log('📤 Enviando a servidor con datos de Discord:', formData);
         
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
+        // --- 🚨 FIX DE CORS FINAL: ENVIAR COMO PARÁMETRO GET 🚨 ---
+        // 1. Serializamos los datos
+        const serializedData = encodeURIComponent(JSON.stringify(formData));
+        
+        // 2. Creamos la URL GET con los datos como parámetro 'data'
+        const getUrl = `${APPS_SCRIPT_URL}?data=${serializedData}`;
+
+        // 3. Ejecutamos FETCH con el método GET para bypass CORS
+        const response = await fetch(getUrl, {
+            method: 'GET'
         });
         
         const text = await response.text();
@@ -54,14 +60,12 @@ async function enviarDatosPago(formData) {
         try {
             result = JSON.parse(text);
         } catch(e) {
-            console.error("No se pudo parsear el JSON. Posible respuesta HTML de Apps Script:", text);
-            // Intentar extraer el JSON si está envuelto (solución temporal para entornos locales)
+            // Intentar extraer el JSON si está envuelto en HTML/Tags (típico de Apps Script)
             const match = text.match(/\{"success":.*?\}/);
             if (match) {
                 result = JSON.parse(match[0]);
             } else {
-                // El error CORS/Fetch puede dejar un texto vacío o ilegible si la publicación falló.
-                throw new Error("Respuesta del servidor no válida. Revise el Apps Script y su Publicación.");
+                throw new Error("Respuesta del servidor no válida. Si este error persiste, verifica el log de ejecución de Apps Script.");
             }
         }
 
@@ -76,13 +80,7 @@ async function enviarDatosPago(formData) {
                 statusDiv.style.border = '2px solid #4CAF50';
                 statusDiv.style.color = '#4CAF50';
                 
-                let discordMsg = '⏳ Procesando...';
-                if (result.discordStatus === 'ROL_ASIGNADO') {
-                    discordMsg = '✅ Rol asignado';
-                } else if (result.discordStatus === 'ERROR_ASIGNACION') {
-                    discordMsg = '⚠️ Revisar manualmente';
-                }
-
+                let discordMsg = (result.discordStatus === 'ROL_ASIGNADO') ? '✅ Rol asignado' : '⚠️ Revisar manualmente';
                 statusDiv.innerHTML = `
                     <strong>✅ ¡Compra exitosa!</strong><br>
                     <small>Rol Discord: ${discordMsg}</small>
@@ -94,7 +92,7 @@ async function enviarDatosPago(formData) {
                 showSuccessModal(formData, result);
             }, 1500);
         } else {
-            throw new new Error(result.error || 'Error desconocido del servidor');
+            throw new Error(result.error || 'Error desconocido del servidor');
         }
         
     } catch (error) {
@@ -105,7 +103,7 @@ async function enviarDatosPago(formData) {
             statusDiv.style.background = 'rgba(255, 0, 0, 0.2)';
             statusDiv.style.border = '2px solid #ff0000';
             statusDiv.style.color = '#ff0000';
-            statusDiv.innerHTML = `<strong>❌ Error:</strong><br><small>No se pudo contactar/procesar: ${error.message}</small>`;
+            statusDiv.innerHTML = `<strong>❌ Error:</strong><br><small>Fallo al contactar al servidor: ${error.message}</small>`;
         }
     }
 }
@@ -121,11 +119,8 @@ function showSuccessModal(data, result) {
     if (result.discordStatus === 'ROL_ASIGNADO') {
         discordStatusMsg = '✅ Rol de Discord asignado automáticamente';
         discordColor = '#4CAF50';
-    } else if (result.discordStatus === 'ERROR_ASIGNACION' || result.discordStatus === 'ERROR_ASIGNACION_NO_ID' || result.discordStatus === 'ERROR_BUSCANDO_USUARIO') {
+    } else if (result.discordStatus.includes('ERROR') || result.discordStatus === 'NO_DISCORD_INFO') {
         discordStatusMsg = '⚠️ Rol pendiente - Contacta soporte con tu Transaction ID. Razón: Error de asignación.';
-        discordColor = '#ff6b6b';
-    } else if (result.discordStatus === 'NO_DISCORD_INFO') {
-        discordStatusMsg = '⚠️ Rol pendiente - Falta información de Discord';
         discordColor = '#ff6b6b';
     }
     
