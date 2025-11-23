@@ -21,7 +21,7 @@ const CONFIG = {
     // CONFIGURACIÓN DE DISCORD
     discord: {
         serverId: '1441085570334982187',
-        botToken: 'MTQ0MjE4NDQ2ODiyMjk2NzkyMA.GHft4N.0HjSOhImUkxuzTvG_X02-tA2UXKybLzNM-Dmyk',
+        botToken: 'MTQ0MjE4NDQ2ODIyMjk2NzkyMA.GUJeUA.0NRyCo6Wku86OG9DVpr1BTTpq8_MDxqHu_sWF8',
         roleIds: {
             vip: '1441085570334982193',
             gold: '1441491511492743168',
