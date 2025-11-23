@@ -11,7 +11,7 @@ const CONFIG = {
     },
     // <<< REEMPLAZA ESTA URL CON TU URL DE IMPLEMENTACIÓN DEL APPS SCRIPT >>>
     server: {
-        endpoint: 'https://script.google.com/macros/s/AKfycbyVRW6x3sZnx0Ywhx8as-sGpa-C0hreDRdbevi4jgzzyrlxjtUh74CpjGQLTV2Y6wDh-A/exec' 
+        endpoint: 'https://script.google.com/macros/s/AKfycbw3-LOEyVjR-cFTtxV-ne-ACOGB7MXkl4WG19qYQJKCWflMIoqJo_OrLtUtGaiz8wiB0Q/exec' 
     },
     pricing: {
         vip: 0.10,
