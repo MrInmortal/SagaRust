@@ -5,11 +5,11 @@ const CONFIG = {
         currency: 'USD',
         environment: 'production'
     },
-    // <<< ID DE HOJA DE CÁLCULO DEL USUARIO >>>
+    // ID de tu Hoja de Cálculo
     spreadsheet: {
         id: '1Rm5UA4gHhttlUO61tJiqdNA4OS32MJwD0KwYFNu7KvU'
     },
-    // <<< URL DE IMPLEMENTACIÓN DEL USUARIO >>>
+    // URL de Implementación FINAL de Google Apps Script
     server: {
         endpoint: 'https://script.google.com/macros/s/AKfycbw3-LOEyVjR-cFTtxV-ne-ACOGB7MXkl4WG19qYQJKCWflMIoqJo_OrLtUtGaiz8wiB0Q/exec'
     },
@@ -18,14 +18,14 @@ const CONFIG = {
         gold: 0.10,
         diamond: 0.10
     },
-    // >>> CONFIGURACIÓN DE DISCORD <<<
+    // CONFIGURACIÓN DE DISCORD
     discord: {
-        serverId: '1441085570334982187', // ID del servidor de Discord
+        serverId: '1441085570334982187',
         botToken: 'MTQ0MjE4NDQ2ODiyMjk2NzkyMA.GHft4N.0HjSOhImUkxuzTvG_X02-tA2UXKybLzNM-Dmyk',
         roleIds: {
-            vip: '1441085570334982193', // ID VIP
-            gold: '1441491511492743168', // ID VIP oro
-            diamond: '1441491490810499213' // ID VIP diamante
+            vip: '1441085570334982193',
+            gold: '1441491511492743168',
+            diamond: '1441491490810499213'
         }
     }
 };
