@@ -60,7 +60,8 @@ async function enviarDatosPago(formData) {
             if (match) {
                 result = JSON.parse(match[0]);
             } else {
-                throw new Error("Respuesta del servidor no válida. Revise el Apps Script.");
+                // El error CORS/Fetch puede dejar un texto vacío o ilegible si la publicación falló.
+                throw new Error("Respuesta del servidor no válida. Revise el Apps Script y su Publicación.");
             }
         }
 
@@ -93,7 +94,7 @@ async function enviarDatosPago(formData) {
                 showSuccessModal(formData, result);
             }, 1500);
         } else {
-            throw new Error(result.error || 'Error desconocido del servidor');
+            throw new new Error(result.error || 'Error desconocido del servidor');
         }
         
     } catch (error) {
@@ -264,7 +265,6 @@ function initPayPalButton(vipType) {
 // Inicialización del Checkout
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 Checkout cargado - Inicializando PayPal');
-    // loadCheckoutSummary debe estar en navigation.js y debe cargarse antes de checkout.js
     if (typeof loadCheckoutSummary === 'function') {
         loadCheckoutSummary(); 
     } else {
