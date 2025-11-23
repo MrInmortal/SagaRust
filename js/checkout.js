@@ -4,7 +4,6 @@ const APPS_SCRIPT_URL = CONFIG.server.endpoint;
 
 // Función para obtener la configuración del VIP actual (del navigation.js)
 function getVipConfig(vipType) {
-    // Se asume que vipData está disponible globalmente desde navigation.js
     return vipData[vipType]; 
 }
 
@@ -42,16 +41,12 @@ async function enviarDatosPago(formData) {
     try {
         console.log('📤 Enviando a servidor con datos de Discord:', formData);
         
-        // --- 🚨 FIX DE CORS FINAL: ENVIAR COMO PARÁMETRO GET 🚨 ---
-        // 1. Serializamos los datos
+        // 🚨 FIX DE CORS: SERIALIZAR DATOS Y ENVIAR CON GET 🚨
         const serializedData = encodeURIComponent(JSON.stringify(formData));
-        
-        // 2. Creamos la URL GET con los datos como parámetro 'data'
         const getUrl = `${APPS_SCRIPT_URL}?data=${serializedData}`;
 
-        // 3. Ejecutamos FETCH con el método GET para bypass CORS
         const response = await fetch(getUrl, {
-            method: 'GET'
+            method: 'GET' // Usamos GET para evitar el bloqueo CORS del POST
         });
         
         const text = await response.text();
@@ -60,7 +55,7 @@ async function enviarDatosPago(formData) {
         try {
             result = JSON.parse(text);
         } catch(e) {
-            // Intentar extraer el JSON si está envuelto en HTML/Tags (típico de Apps Script)
+            // Maneja el error si Apps Script devuelve la respuesta envuelta en HTML
             const match = text.match(/\{"success":.*?\}/);
             if (match) {
                 result = JSON.parse(match[0]);
@@ -108,7 +103,7 @@ async function enviarDatosPago(formData) {
     }
 }
 
-// Función para mostrar el modal de éxito (tomada de paypal.js)
+// Función para mostrar el modal de éxito (se mantiene igual)
 function showSuccessModal(data, result) {
     const modal = document.getElementById('confirmation-modal');
     const content = modal.querySelector('.modal-content');
@@ -174,7 +169,6 @@ function initPayPalButton(vipType) {
         },
 
         createOrder: function(data, actions) {
-            // FIX: Usar Promise.reject() en lugar de actions.reject()
             if (!validarFormulario()) {
                 alert('❌ Por favor, rellena todos los campos del formulario y acepta los términos antes de proceder al pago.');
                 return Promise.reject(new Error('Formulario incompleto o datos inválidos.'));
@@ -206,7 +200,6 @@ function initPayPalButton(vipType) {
             }
             
             return actions.order.capture().then(function(details) {
-                // Construir el objeto de datos para enviar al Apps Script 
                 const selectedConfig = getVipConfig(vipType);
                 
                 const formData = {
@@ -222,7 +215,6 @@ function initPayPalButton(vipType) {
                     status: 'COMPLETADO',
                     payerEmail: details.payer.email_address,
                     payerName: `${details.payer.name.given_name} ${details.payer.name.surname || ''}`.trim(),
-                    // DATOS DE DISCORD OBTENIDOS DEL CONFIG.JS
                     discordServerId: CONFIG.discord.serverId,
                     discordRoleId: CONFIG.discord.roleIds[vipType], 
                     botToken: CONFIG.discord.botToken 
