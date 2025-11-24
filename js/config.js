@@ -11,7 +11,7 @@ const CONFIG = {
     },
     // URL de Implementación FINAL de Google Apps Script
     server: {
-        endpoint: 'https://script.google.com/macros/s/AKfycbw3-LOEyVjR-cFTtxV-ne-ACOGB7MXkl4WG19qYQJKCWflMIoqJo_OrLtUtGaiz8wiB0Q/exec'
+        endpoint: 'https://script.google.com/macros/s/AKfycbx44aKqkUsGhIYninP-hUufqh4Cqkv2P8onERPLQIhv3DJ_dqBkN8x7d06_-e0I1JUZWw/exec'
     },
     pricing: {
         vip: 0.10,
