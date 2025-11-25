@@ -1,9 +1,12 @@
-// js/checkout.js - Lógica de PayPal y envío de datos
+// js/checkout.js - Lógica de PayPal y envío de datos al backend (Google Apps Script)
+
+// Nota: vipData y CONFIG deben estar cargados por navigation.js y config.js
 let vipConfig = {}; 
 const APPS_SCRIPT_URL = CONFIG.server.endpoint;
 
 // Función para obtener la configuración del VIP actual (del navigation.js)
 function getVipConfig(vipType) {
+    // Usamos el objeto global vipData cargado desde navigation.js
     return vipData[vipType]; 
 }
 
@@ -25,6 +28,12 @@ function validarFormulario() {
         return false;
     }
     
+    // Validación del Discord ID (solo números, 17-20 dígitos)
+    if (!/^[0-9]{17,20}$/.test(discord)) {
+        alert('❌ ID de Discord inválido. Debe ser una cadena de solo números (17 a 20 dígitos).');
+        return false;
+    }
+
     // Guardar los datos del formulario localmente
     localStorage.setItem('sagaRustFormData', JSON.stringify({
         steamId: steamId,
@@ -39,10 +48,21 @@ function validarFormulario() {
 // Función para enviar datos al Google Apps Script (Backend)
 async function enviarDatosPago(formData) {
     try {
-        console.log('📤 Enviando a servidor con datos de Discord:', formData);
+        console.log('📤 Enviando a servidor Apps Script con ID de Discord:', formData.discord);
         
-        // 🚨 FIX DE CORS: SERIALIZAR DATOS Y ENVIAR CON GET 🚨
-        const serializedData = encodeURIComponent(JSON.stringify(formData));
+        // Crear el objeto de datos que Apps Script espera
+        const dataToSend = {
+            steamId: formData.steamId,
+            email: formData.email,
+            discord: formData.discord, // Esto es el Discord User ID
+            vipType: formData.vipType, // 'vip', 'gold', 'diamond'
+            transactionId: formData.transactionId,
+            amount: formData.amount,
+            status: 'COMPLETADO'
+        };
+
+        // FIX DE CORS: SERIALIZAR DATOS Y ENVIAR CON GET
+        const serializedData = encodeURIComponent(JSON.stringify(dataToSend));
         const getUrl = `${APPS_SCRIPT_URL}?data=${serializedData}`;
 
         const response = await fetch(getUrl, {
@@ -51,23 +71,24 @@ async function enviarDatosPago(formData) {
         
         const text = await response.text();
         
-        let result;
+        let result = {};
+
         try {
-            result = JSON.parse(text);
-        } catch(e) {
-            // Maneja el error si Apps Script devuelve la respuesta envuelta en HTML
+            // Intentar parsear la respuesta limpia del Apps Script
             const match = text.match(/\{"success":.*?\}/);
             if (match) {
                 result = JSON.parse(match[0]);
             } else {
-                throw new Error("Respuesta del servidor no válida. Si este error persiste, verifica el log de ejecución de Apps Script.");
+                throw new Error("Respuesta del servidor no válida. Revisa los logs de Apps Script.");
             }
+        } catch(e) {
+            throw new Error("Fallo al interpretar la respuesta del servidor.");
         }
 
         console.log('✅ Resultado del servidor:', result);
         
         if (result.success) {
-            // Actualizar estado de pago
+            // Lógica para mostrar éxito
             const statusDiv = document.getElementById('payment-status');
             if (statusDiv) {
                 statusDiv.style.display = 'block';
@@ -75,7 +96,7 @@ async function enviarDatosPago(formData) {
                 statusDiv.style.border = '2px solid #4CAF50';
                 statusDiv.style.color = '#4CAF50';
                 
-                let discordMsg = (result.discordStatus === 'ROL_ASIGNADO') ? '✅ Rol asignado' : '⚠️ Revisar manualmente';
+                let discordMsg = (result.discordStatus === 'ROL_ASIGNADO') ? '✅ Rol asignado (30 días)' : '⚠️ Revisar manualmente (Error en el Bot Python)';
                 statusDiv.innerHTML = `
                     <strong>✅ ¡Compra exitosa!</strong><br>
                     <small>Rol Discord: ${discordMsg}</small>
@@ -87,7 +108,7 @@ async function enviarDatosPago(formData) {
                 showSuccessModal(formData, result);
             }, 1500);
         } else {
-            throw new Error(result.error || 'Error desconocido del servidor');
+            throw new Error(result.error || 'Error desconocido del servidor Apps Script');
         }
         
     } catch (error) {
@@ -103,7 +124,7 @@ async function enviarDatosPago(formData) {
     }
 }
 
-// Función para mostrar el modal de éxito (se mantiene igual)
+// Función para mostrar el modal de éxito (ajustada para el estado del Bot Python)
 function showSuccessModal(data, result) {
     const modal = document.getElementById('confirmation-modal');
     const content = modal.querySelector('.modal-content');
@@ -112,10 +133,10 @@ function showSuccessModal(data, result) {
     let discordColor = '#ffa500';
     
     if (result.discordStatus === 'ROL_ASIGNADO') {
-        discordStatusMsg = '✅ Rol de Discord asignado automáticamente';
+        discordStatusMsg = '✅ Rol de Discord asignado automáticamente (30 días)';
         discordColor = '#4CAF50';
-    } else if (result.discordStatus.includes('ERROR') || result.discordStatus === 'NO_DISCORD_INFO') {
-        discordStatusMsg = '⚠️ Rol pendiente - Contacta soporte con tu Transaction ID. Razón: Error de asignación.';
+    } else if (result.discordStatus.includes('ERROR')) {
+        discordStatusMsg = '⚠️ Rol pendiente - Contacta soporte con tu Transaction ID. Razón: Error del Bot Python.';
         discordColor = '#ff6b6b';
     }
     
@@ -125,8 +146,7 @@ function showSuccessModal(data, result) {
         <p style="font-size:1.2rem;margin:10px 0;"><strong>${data.vipTitle}</strong></p>
         <div style="text-align:left;background:rgba(255,255,255,0.1);padding:20px;border-radius:8px;margin:20px 0;">
             <p style="margin:8px 0;"><strong>Steam ID:</strong> ${data.steamId}</p>
-            <p style="margin:8px 0;"><strong>Email:</strong> ${data.email}</p>
-            <p style="margin:8px 0;"><strong>Discord:</strong> ${data.discord}</p>
+            <p style="margin:8px 0;"><strong>Discord ID:</strong> ${data.discord}</p>
             <p style="margin:8px 0;"><strong>Transacción:</strong> ${data.transactionId}</p>
             <p style="margin:8px 0;"><strong>Monto:</strong> $${data.amount} USD</p>
         </div>
@@ -206,8 +226,8 @@ function initPayPalButton(vipType) {
                     steamId: document.getElementById('steam-id').value.trim(),
                     email: document.getElementById('email').value.trim(),
                     name: document.getElementById('name').value.trim(),
-                    discord: document.getElementById('discord').value.trim().split('#')[0],
-                    vipType: vipType,
+                    discord: document.getElementById('discord').value.trim(), // Enviamos el ID numérico
+                    vipType: vipType, // Clave: 'vip', 'gold', 'diamond'
                     vipTitle: selectedConfig.title,
                     transactionId: data.orderID,
                     paypalOrderId: details.id,
@@ -215,11 +235,9 @@ function initPayPalButton(vipType) {
                     status: 'COMPLETADO',
                     payerEmail: details.payer.email_address,
                     payerName: `${details.payer.name.given_name} ${details.payer.name.surname || ''}`.trim(),
-                    discordServerId: CONFIG.discord.serverId,
-                    discordRoleId: CONFIG.discord.roleIds[vipType], 
-                    botToken: CONFIG.discord.botToken 
                 };
                 
+                // Llamada a la función central para notificar al Apps Script
                 return enviarDatosPago(formData);
             });
         },
@@ -228,11 +246,11 @@ function initPayPalButton(vipType) {
             console.error('❌ Error PayPal:', err);
             const statusDiv = document.getElementById('payment-status');
             if (statusDiv) {
-                 statusDiv.style.display = 'block';
-                 statusDiv.style.background = 'rgba(255, 0, 0, 0.2)';
-                 statusDiv.style.border = '2px solid #ff0000';
-                 statusDiv.style.color = '#ff0000';
-                 statusDiv.innerHTML = '<strong>❌ Error en el pago de PayPal</strong>';
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = 'rgba(255, 0, 0, 0.2)';
+                statusDiv.style.border = '2px solid #ff0000';
+                statusDiv.style.color = '#ff0000';
+                statusDiv.innerHTML = '<strong>❌ Error en el pago de PayPal</strong>';
             }
         },
 
@@ -243,8 +261,8 @@ function initPayPalButton(vipType) {
     }).render('#paypal-button-container')
       .then(() => console.log('✅ Botón PayPal renderizado'))
       .catch(err => {
-          console.error('❌ Error renderizando PayPal:', err);
-          container.innerHTML = '<p style="color:#ff6b6b;text-align:center;">Error al cargar PayPal. Intenta recargar la página.</p>';
+            console.error('❌ Error renderizando PayPal:', err);
+            container.innerHTML = '<p style="color:#ff6b6b;text-align:center;">Error al cargar PayPal. Intenta recargar la página.</p>';
       });
 }
 
@@ -252,7 +270,9 @@ function initPayPalButton(vipType) {
 // Inicialización del Checkout
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 Checkout cargado - Inicializando PayPal');
+    
     if (typeof loadCheckoutSummary === 'function') {
+        // loadCheckoutSummary se encarga de cargar datos de navigation.js
         loadCheckoutSummary(); 
     } else {
         console.error("Función loadCheckoutSummary no encontrada. Asegura que navigation.js está cargado.");
@@ -267,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('✅ VIP seleccionado:', vipType);
     
-    // Esperar a que PayPal cargue
+    // Esperar a que PayPal SDK cargue (es un script externo)
     let attempts = 0;
     const maxAttempts = 50;
     
